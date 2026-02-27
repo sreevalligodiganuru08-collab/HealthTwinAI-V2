@@ -1,24 +1,58 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>HealthTwinAI</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Health Dashboard</title>
 </head>
-<body>
+<body style="font-family: Arial; text-align: center;">
 
-<h1>Health Monitoring System</h1>
+    <h1>HealthTwinAI Dashboard</h1>
 
-<div class="container">
-    <input type="number" id="heart_rate" placeholder="Heart Rate">
-    <input type="number" id="steps" placeholder="Steps">
-    <input type="number" id="sleep" placeholder="Sleep Hours">
+    <h3>Add Health Data</h3>
 
-    <button onclick="predict()">Predict</button>
+    <input id="name" placeholder="Name"><br><br>
+    <input id="age" placeholder="Age"><br><br>
+    <input id="bp" placeholder="Blood Pressure"><br><br>
 
-    <h2 id="result"></h2>
-</div>
+    <button onclick="addData()">Submit</button>
 
-<script src="script.js"></script>
+    <h3>Records</h3>
+    <ul id="list"></ul>
+
+<script>
+const API = "http://127.0.0.1:8000/health";
+
+async function addData() {
+    const data = {
+        name: document.getElementById("name").value,
+        age: document.getElementById("age").value,
+        bp: document.getElementById("bp").value
+    };
+
+    await fetch(`${API}/add`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+    });
+
+    loadData();
+}
+
+async function loadData() {
+    const res = await fetch(`${API}/all`);
+    const data = await res.json();
+
+    const list = document.getElementById("list");
+    list.innerHTML = "";
+
+    data.forEach(item => {
+        const li = document.createElement("li");
+        li.innerText = `${item.name} | Age: ${item.age} | BP: ${item.bp}`;
+        list.appendChild(li);
+    });
+}
+
+loadData();
+</script>
 
 </body>
 </html>

@@ -1,19 +1,23 @@
-def predict_health(data):
-    heart_rate = data.get("heart_rate", 0)
-    steps = data.get("steps", 0)
-    sleep = data.get("sleep", 0)
+def analyze_health(records):
+    if not records:
+        return {"status": "No Data"}
 
-    score = 0
+    latest = records[-1]
 
-    # simple correlation logic
-    if heart_rate > 100 and sleep < 5:
-        score += 2
-    if steps < 3000:
-        score += 1
+    heart = int(latest.get("heart_rate", 0))
+    spo2 = int(latest.get("spo2", 0))
+    steps = int(latest.get("steps", 0))
 
-    if score >= 2:
-        return "High Risk"
-    elif score == 1:
-        return "Moderate Risk"
-    else:
-        return "Low Risk"
+    status = "Healthy"
+
+    if heart > 100:
+        status = "High Heart Rate"
+    elif spo2 < 95:
+        status = "Low Oxygen Level"
+    elif steps < 1000:
+        status = "Inactive Lifestyle"
+
+    return {
+        "latest_record": latest,
+        "health_status": status
+    }

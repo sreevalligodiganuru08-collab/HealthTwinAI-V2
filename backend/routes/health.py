@@ -1,15 +1,18 @@
 from fastapi import APIRouter
-from pydantic import BaseModel
-from backend.model import predict_risk
+from database import save_record, get_records
+from model import analyze_health
 
-router = APIRouter()
+router = APIRouter(prefix="/health", tags=["Health"])
 
-class HealthData(BaseModel):
-    heart_rate: int
-    steps: int
-    sleep_hours: float
+@router.post("/add")
+def add_data(data: dict):
+    return save_record(data)
 
-@router.post("/predict")
-def predict(data: HealthData):
-    result = predict_risk(data.heart_rate, data.steps, data.sleep_hours)
-    return {"risk_level": result}
+@router.get("/all")
+def get_all():
+    return get_records()
+
+@router.get("/analyze")
+def analyze():
+    records = get_records()
+    return analyze_health(records)

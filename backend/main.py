@@ -1,23 +1,10 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from backend.model import predict_health
+from routes.health import router
 
 app = FastAPI()
 
-# ✅ CORS FIX (IMPORTANT)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # allow all for now
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.include_router(router)
 
 @app.get("/")
 def home():
-    return {"message": "HealthTwinAI Running"}
-
-@app.post("/predict")
-def predict(data: dict):
-    result = predict_health(data)
-    return {"prediction": result}
+    return {"message": "HealthTwinAI Backend Running"}
