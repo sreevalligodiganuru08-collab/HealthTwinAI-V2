@@ -1,58 +1,71 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Health Dashboard</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HealthTwin AI Dashboard - CodeBlue</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body style="font-family: Arial; text-align: center;">
+<body>
+  <header>
+    <h1>💙 HealthTwin AI - <span class="team-name">CodeBlue</span></h1>
+    <h3>Track. Analyze. Improve Your Health!</h3>
+  </header>
 
-    <h1>HealthTwinAI Dashboard</h1>
+  <main>
+    <!-- Input Section -->
+    <section class="input-section">
+      <h2>Enter Your Health Data</h2>
+      <form id="healthForm">
+        <input type="number" name="heart_rate" placeholder="Heart Rate (bpm)" required>
+        <input type="number" name="oxygen_level" placeholder="Oxygen Level (%)" required>
+        <input type="number" name="steps" placeholder="Steps Walked" required>
+        <input type="text" name="blood_pressure" placeholder="Blood Pressure (e.g., 120/80)" required>
+        <button type="submit">💾 Save Record</button>
+      </form>
+    </section>
 
-    <h3>Add Health Data</h3>
+    <!-- Records Section -->
+    <section class="records-section">
+      <h2>Your Records</h2>
+      <table id="recordsTable">
+        <thead>
+          <tr>
+            <th>Date & Time</th>
+            <th>Heart Rate</th>
+            <th>Oxygen Level</th>
+            <th>Steps</th>
+            <th>Blood Pressure</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
 
-    <input id="name" placeholder="Name"><br><br>
-    <input id="age" placeholder="Age"><br><br>
-    <input id="bp" placeholder="Blood Pressure"><br><br>
+    <!-- Health Summary -->
+    <section class="summary-section">
+      <h2>Health Summary</h2>
+      <p id="healthSummary" class="summary-text">Your health summary will appear here.</p>
+    </section>
 
-    <button onclick="addData()">Submit</button>
+    <!-- Pie Charts -->
+    <section class="chart-section">
+      <h2>Health Overview (Scores)</h2>
+      <div class="charts-container">
+        <canvas id="heartChart"></canvas>
+        <canvas id="oxygenChart"></canvas>
+        <canvas id="stepsChart"></canvas>
+        <canvas id="bpChart"></canvas>
+      </div>
+      <p id="overallScore" style="text-align:center; font-weight:bold; margin-top:10px;"></p>
+    </section>
+  </main>
 
-    <h3>Records</h3>
-    <ul id="list"></ul>
+  <footer>
+    <p>Made with ❤️ by CodeBlue for better health tracking</p>
+  </footer>
 
-<script>
-const API = "http://127.0.0.1:8000/health";
-
-async function addData() {
-    const data = {
-        name: document.getElementById("name").value,
-        age: document.getElementById("age").value,
-        bp: document.getElementById("bp").value
-    };
-
-    await fetch(`${API}/add`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-    });
-
-    loadData();
-}
-
-async function loadData() {
-    const res = await fetch(`${API}/all`);
-    const data = await res.json();
-
-    const list = document.getElementById("list");
-    list.innerHTML = "";
-
-    data.forEach(item => {
-        const li = document.createElement("li");
-        li.innerText = `${item.name} | Age: ${item.age} | BP: ${item.bp}`;
-        list.appendChild(li);
-    });
-}
-
-loadData();
-</script>
-
+  <script src="script.js"></script>
 </body>
 </html>
