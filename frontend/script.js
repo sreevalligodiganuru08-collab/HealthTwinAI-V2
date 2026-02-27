@@ -9,14 +9,12 @@ async function predict() {
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
-            heart_rate: parseInt(heart_rate),
-            steps: parseInt(steps),
-            sleep_hours: parseFloat(sleep)
+            heart_rate: Number(heart_rate),
+            steps: Number(steps),
+            sleep: Number(sleep)
         })
     });
 
     const data = await response.json();
-
-    document.getElementById("result").innerText =
-        "Risk Level: " + data.risk_level;
+    alert("Prediction: " + data.prediction);
 }
