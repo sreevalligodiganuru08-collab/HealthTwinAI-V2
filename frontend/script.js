@@ -5,8 +5,8 @@ const healthSummary = document.getElementById('healthSummary');
 // Pie chart instances
 let heartChartInstance, oxygenChartInstance, stepsChartInstance, bpChartInstance;
 
-// Use same origin (Render will serve frontend + backend)
-const API_BASE = '';
+// 🌟 IMPORTANT: Change this to your deployed backend URL on Render
+const API_BASE = 'https://healthtwinai-v2-1.onrender.com';
 
 // Fetch and render records
 async function fetchRecords() {
@@ -68,17 +68,21 @@ function renderHealthSummary(record) {
   const messages = [];
   const [systolic, diastolic] = record.blood_pressure.split("/").map(Number);
 
+  // Heart
   if(record.heart_rate < 60) messages.push("⚠️ Heart rate is low, consider mild activity.");
   else if(record.heart_rate <= 100) messages.push("✅ Heart rate is normal.");
   else messages.push("⚠️ Heart rate is high, relax and monitor.");
 
+  // Oxygen
   if(record.oxygen_level >= 95) messages.push("✅ Oxygen level is good.");
   else messages.push("⚠️ Oxygen level is low, consult if persistent.");
 
+  // Steps
   if(record.steps >= 7000) messages.push("✅ Steps are good today.");
   else if(record.steps >= 4000) messages.push("⚠️ Steps moderate, try walking more.");
   else messages.push("⚠️ Steps low, aim for more activity.");
 
+  // Blood Pressure
   if(systolic <= 130 && diastolic <= 80) messages.push("✅ Blood pressure is normal.");
   else messages.push("⚠️ Blood pressure is slightly high, reduce stress & salt.");
 
@@ -96,6 +100,7 @@ function renderPieCharts(record) {
 
   const colors = ['#4facfe','#00f2fe','#ff6b6b','#feca57'];
 
+  // Heart
   if(heartChartInstance) heartChartInstance.destroy();
   heartChartInstance = new Chart(document.getElementById('heartChart').getContext('2d'), {
     type:'pie',
@@ -103,6 +108,7 @@ function renderPieCharts(record) {
     options:{plugins:{legend:{display:false}}, responsive:false}
   });
 
+  // Oxygen
   if(oxygenChartInstance) oxygenChartInstance.destroy();
   oxygenChartInstance = new Chart(document.getElementById('oxygenChart').getContext('2d'), {
     type:'pie',
@@ -110,6 +116,7 @@ function renderPieCharts(record) {
     options:{plugins:{legend:{display:false}}, responsive:false}
   });
 
+  // Steps
   if(stepsChartInstance) stepsChartInstance.destroy();
   stepsChartInstance = new Chart(document.getElementById('stepsChart').getContext('2d'), {
     type:'pie',
@@ -117,6 +124,7 @@ function renderPieCharts(record) {
     options:{plugins:{legend:{display:false}}, responsive:false}
   });
 
+  // BP
   if(bpChartInstance) bpChartInstance.destroy();
   bpChartInstance = new Chart(document.getElementById('bpChart').getContext('2d'), {
     type:'pie',
