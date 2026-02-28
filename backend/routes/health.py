@@ -1,6 +1,6 @@
 from fastapi import APIRouter
-from database import save_record, get_records
-from model import analyze_health
+from backend.database import save_record, get_records
+from backend.model import analyze_health
 
 router = APIRouter(prefix="/health", tags=["Health"])
 
