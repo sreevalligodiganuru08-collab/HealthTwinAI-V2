@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from backend.routes import health_router  # your existing API routes
+from backend.routes.health import health_router  # your existing API routes
 
 app = FastAPI(title="HealthTwin AI")
 
