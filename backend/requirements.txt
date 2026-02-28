@@ -1,6 +1,8 @@
 fastapi
 uvicorn
 pydantic
+pymongo
 numpy
 pandas
-pymongo
+python-multipart
+dnspython

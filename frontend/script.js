@@ -5,8 +5,8 @@ const healthSummary = document.getElementById('healthSummary');
 // Pie chart instances
 let heartChartInstance, oxygenChartInstance, stepsChartInstance, bpChartInstance;
 
-// API URL
-const API_BASE = 'http://127.0.0.1:8000';
+// Use same origin (Render will serve frontend + backend)
+const API_BASE = '';
 
 // Fetch and render records
 async function fetchRecords() {
@@ -27,13 +27,13 @@ async function fetchRecords() {
       recordsTable.appendChild(tr);
     });
 
-    if (data.length) {
-      const latest = data[data.length - 1];
+    if(data.length) {
+      const latest = data[data.length -1];
       renderPieCharts(latest);
       renderHealthSummary(latest);
     }
 
-  } catch (err) {
+  } catch(err) {
     console.error('Error fetching records:', err);
   }
 }
@@ -58,7 +58,7 @@ healthForm.addEventListener('submit', async (e) => {
     alert('✅ Record Saved Successfully!');
     healthForm.reset();
     fetchRecords();
-  } catch (err) {
+  } catch(err) {
     console.error('Error saving record:', err);
   }
 });
@@ -68,86 +68,56 @@ function renderHealthSummary(record) {
   const messages = [];
   const [systolic, diastolic] = record.blood_pressure.split("/").map(Number);
 
-  // Heart
-  if (record.heart_rate < 60) messages.push("⚠️ Heart rate is low, consider mild activity.");
-  else if (record.heart_rate <= 100) messages.push("✅ Heart rate is normal.");
+  if(record.heart_rate < 60) messages.push("⚠️ Heart rate is low, consider mild activity.");
+  else if(record.heart_rate <= 100) messages.push("✅ Heart rate is normal.");
   else messages.push("⚠️ Heart rate is high, relax and monitor.");
 
-  // Oxygen
-  if (record.oxygen_level >= 95) messages.push("✅ Oxygen level is good.");
+  if(record.oxygen_level >= 95) messages.push("✅ Oxygen level is good.");
   else messages.push("⚠️ Oxygen level is low, consult if persistent.");
 
-  // Steps
-  if (record.steps >= 7000) messages.push("✅ Steps are good today.");
-  else if (record.steps >= 4000) messages.push("⚠️ Steps moderate, try walking more.");
+  if(record.steps >= 7000) messages.push("✅ Steps are good today.");
+  else if(record.steps >= 4000) messages.push("⚠️ Steps moderate, try walking more.");
   else messages.push("⚠️ Steps low, aim for more activity.");
 
-  // Blood Pressure
-  if (systolic <= 130 && diastolic <= 80) messages.push("✅ Blood pressure is normal.");
+  if(systolic <= 130 && diastolic <= 80) messages.push("✅ Blood pressure is normal.");
   else messages.push("⚠️ Blood pressure is slightly high, reduce stress & salt.");
 
   healthSummary.innerHTML = messages.join("<br>");
 }
 
-// Correct scoring system for each parameter (0-25)
-function calculateScores(record) {
-  const [systolic, diastolic] = record.blood_pressure.split("/").map(Number);
-
-  // Heart Rate: ideal 60-100 bpm
-  let heart = 25 - Math.max(0, Math.abs(record.heart_rate - 80)/2);
-  heart = Math.min(Math.max(heart, 0), 25);
-
-  // Oxygen Level: ideal >= 95%
-  let oxygen = 25 - Math.max(0, (95 - record.oxygen_level));
-  oxygen = Math.min(Math.max(oxygen, 0), 25);
-
-  // Steps: target 7000+
-  let steps = (record.steps / 7000) * 25;
-  steps = Math.min(Math.max(steps, 0), 25);
-
-  // Blood Pressure: ideal systolic 110-130
-  let bp = 25 - Math.max(0, Math.abs(systolic - 120)/2);
-  bp = Math.min(Math.max(bp, 0), 25);
-
-  return {
-    heart: Math.round(heart),
-    oxygen: Math.round(oxygen),
-    steps: Math.round(steps),
-    bp: Math.round(bp)
-  };
-}
-
 // Pie charts
 function renderPieCharts(record) {
-  const scores = calculateScores(record);
+  const scores = {
+    heart: Math.min(Math.max(Math.round((100 - Math.abs(record.heart_rate-80))/4),0),25),
+    oxygen: Math.min(Math.max(Math.round((record.oxygen_level-90)/2),0),25),
+    steps: Math.min(Math.max(Math.round(record.steps/400),0),25),
+    bp: Math.min(Math.max(Math.round((130- Math.abs(record.blood_pressure.split("/")[0]-120))/2),0),25)
+  };
+
   const colors = ['#4facfe','#00f2fe','#ff6b6b','#feca57'];
 
-  // Heart
-  if (heartChartInstance) heartChartInstance.destroy();
+  if(heartChartInstance) heartChartInstance.destroy();
   heartChartInstance = new Chart(document.getElementById('heartChart').getContext('2d'), {
     type:'pie',
     data: {labels:['Heart','Remaining'], datasets:[{data:[scores.heart,25-scores.heart], backgroundColor:[colors[0],'#ddd']}]},
     options:{plugins:{legend:{display:false}}, responsive:false}
   });
 
-  // Oxygen
-  if (oxygenChartInstance) oxygenChartInstance.destroy();
+  if(oxygenChartInstance) oxygenChartInstance.destroy();
   oxygenChartInstance = new Chart(document.getElementById('oxygenChart').getContext('2d'), {
     type:'pie',
     data: {labels:['Oxygen','Remaining'], datasets:[{data:[scores.oxygen,25-scores.oxygen], backgroundColor:[colors[1],'#ddd']}]},
     options:{plugins:{legend:{display:false}}, responsive:false}
   });
 
-  // Steps
-  if (stepsChartInstance) stepsChartInstance.destroy();
+  if(stepsChartInstance) stepsChartInstance.destroy();
   stepsChartInstance = new Chart(document.getElementById('stepsChart').getContext('2d'), {
     type:'pie',
     data: {labels:['Steps','Remaining'], datasets:[{data:[scores.steps,25-scores.steps], backgroundColor:[colors[2],'#ddd']}]},
     options:{plugins:{legend:{display:false}}, responsive:false}
   });
 
-  // BP
-  if (bpChartInstance) bpChartInstance.destroy();
+  if(bpChartInstance) bpChartInstance.destroy();
   bpChartInstance = new Chart(document.getElementById('bpChart').getContext('2d'), {
     type:'pie',
     data: {labels:['BP','Remaining'], datasets:[{data:[scores.bp,25-scores.bp], backgroundColor:[colors[3],'#ddd']}]},
