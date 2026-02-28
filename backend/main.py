@@ -1,20 +1,12 @@
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
-from backend.routes.health import health_router  # your existing API routes
+from backend.routes.health import health_router  # must match the router name in health.py
 
-app = FastAPI(title="HealthTwin AI")
+app = FastAPI(title="HealthTwinAI Backend")
 
-# Enable CORS so frontend JS can call API
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"]
-)
+# Include all routers
+app.include_router(health_router)
 
-# Mount frontend folder at root
-app.mount("/", StaticFiles(directory="../frontend", html=True), name="frontend")
-
-# Include your API router
-app.include_router(health_router, prefix="/health", tags=["health"])
+# Optional: root endpoint
+@app.get("/")
+def root():
+    return {"message": "Welcome to HealthTwinAI Backend!"}

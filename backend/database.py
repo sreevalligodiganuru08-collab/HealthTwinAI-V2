@@ -5,11 +5,21 @@ client = MongoClient("mongodb://localhost:27017/")
 db = client["health_db"]
 collection = db["records"]
 
-def save_record(data):
-    data["timestamp"] = datetime.now()
-    collection.insert_one(data)
-    return {"message": "Record saved"}
+# Simple in-memory database placeholder
+# Replace with MongoDB logic if needed
+
+records = []
+
+def save_record(record: dict):
+    """
+    Save a record to the in-memory database.
+    If you have MongoDB, replace this logic with insertion.
+    """
+    records.append(record)
 
 def get_records():
-    data = list(collection.find({}, {"_id": 0}))
-    return data
+    """
+    Return all saved records.
+    If using MongoDB, replace this with a find query.
+    """
+    return records
