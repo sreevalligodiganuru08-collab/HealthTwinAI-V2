@@ -2,25 +2,115 @@ const healthForm = document.getElementById('healthForm');
 const recordsTable = document.querySelector('#recordsTable tbody');
 const healthSummary = document.getElementById('healthSummary');
 
+// ✅ MAIN SECTIONS CONTROL
+const mainContent = document.querySelector("main");
+
 // Pie chart instances
 let heartChartInstance, oxygenChartInstance, stepsChartInstance, bpChartInstance;
 
-// ✅ Your deployed backend URL
+// ✅ USER SESSION
+let userId = localStorage.getItem("userId");
+
+// ✅ BACKEND URL
 const API_BASE = 'https://healthtwinai-v2-2.onrender.com';
 
-// Fetch and render records
+
+// ============================
+// 🔐 UI CONTROL (IMPORTANT)
+// ============================
+function showDashboard() {
+  document.getElementById("authSection").style.display = "none";
+  document.getElementById("dashboard").style.display = "block";
+  document.getElementById("logoutBtn").style.display = "block";
+}
+
+function hideDashboard() {
+  mainContent.style.display = "none";
+}
+
+
+// ============================
+// 🔐 LOGIN
+// ============================
+async function loginUser() {
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
+
+  const res = await fetch(`${API_BASE}/login`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ username, password })
+  });
+
+  const data = await res.json();
+
+  if (res.ok) {
+    alert("✅ Login Successful");
+    localStorage.setItem("userId", data.userId);
+    userId = data.userId;
+
+    showDashboard();      // ✅ SHOW DASHBOARD
+    fetchRecords();       // ✅ LOAD DATA
+  } else {
+    alert("❌ Invalid credentials");
+  }
+}
+
+
+// ============================
+// 🆕 REGISTER
+// ============================
+async function registerUser() {
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
+
+  const res = await fetch(`${API_BASE}/register`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ username, password })
+  });
+
+  const data = await res.json();
+
+  if (res.ok) {
+    alert("✅ Registered Successfully");
+  } else {
+    alert(data.detail);
+  }
+}
+
+
+// ============================
+// 📥 FETCH RECORDS (USER BASED)
+// ============================
 async function fetchRecords() {
+
+  // ❗ STOP if not logged in
+  if (!userId) {
+    recordsTable.innerHTML = `<tr><td colspan="5">⚠️ Please login to see your data</td></tr>`;
+    return;
+  }
+
   try {
-    // ✅ FIXED ENDPOINT
-    const res = await fetch(`${API_BASE}/records`);
-    const result = await res.json();
-    const data = result.records;
+    const res = await fetch(`${API_BASE}/records/${userId}`);
+    const data = await res.json();
 
     recordsTable.innerHTML = '';
+
+    if (!data.length) {
+      recordsTable.innerHTML = `<tr><td colspan="5">No records found</td></tr>`;
+      return;
+    }
+
     data.forEach(record => {
       const tr = document.createElement('tr');
+
+      const date = record.timestamp
+        ? new Date(record.timestamp).toLocaleString()
+        : "N/A";
+
       tr.innerHTML = `
-        <td>${new Date(record.timestamp).toLocaleString()}</td>
+        <td>${date}</td>
         <td>${record.heart_rate}</td>
         <td>${record.oxygen_level}</td>
         <td>${record.steps}</td>
@@ -29,31 +119,38 @@ async function fetchRecords() {
       recordsTable.appendChild(tr);
     });
 
-    if(data.length) {
-      const latest = data[data.length -1];
-      renderPieCharts(latest);
-      renderHealthSummary(latest);
-    }
+    const latest = data[data.length - 1];
+    renderPieCharts(latest);
+    renderHealthSummary(latest);
 
   } catch(err) {
     console.error('Error fetching records:', err);
   }
 }
 
-// Save new record
+
+// ============================
+// 💾 SAVE RECORD
+// ============================
 healthForm.addEventListener('submit', async (e) => {
   e.preventDefault();
+
+  if (!userId) {
+    alert("⚠️ Please login first!");
+    return;
+  }
+
   const formData = new FormData(healthForm);
 
   const payload = {
     heart_rate: Number(formData.get('heart_rate')),
     oxygen_level: Number(formData.get('oxygen_level')),
     steps: Number(formData.get('steps')),
-    blood_pressure: formData.get('blood_pressure')
+    blood_pressure: formData.get('blood_pressure'),
+    userId: userId
   };
 
   try {
-    // ✅ FIXED ENDPOINT
     await fetch(`${API_BASE}/save`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
@@ -62,6 +159,7 @@ healthForm.addEventListener('submit', async (e) => {
 
     alert('✅ Record Saved Successfully!');
     healthForm.reset();
+
     fetchRecords();
 
   } catch(err) {
@@ -69,30 +167,38 @@ healthForm.addEventListener('submit', async (e) => {
   }
 });
 
-// Dynamic health summary
+
+// ============================
+// 🧠 HEALTH SUMMARY
+// ============================
 function renderHealthSummary(record) {
   const messages = [];
+
   const [systolic, diastolic] = record.blood_pressure.split("/").map(Number);
 
-  if(record.heart_rate < 60) messages.push("⚠️ Heart rate is low, consider mild activity.");
-  else if(record.heart_rate <= 100) messages.push("✅ Heart rate is normal.");
-  else messages.push("⚠️ Heart rate is high, relax and monitor.");
+  if(record.heart_rate < 60) messages.push("⚠️ Heart rate is low");
+  else if(record.heart_rate <= 100) messages.push("✅ Heart rate normal");
+  else messages.push("⚠️ Heart rate high");
 
-  if(record.oxygen_level >= 95) messages.push("✅ Oxygen level is good.");
-  else messages.push("⚠️ Oxygen level is low, consult if persistent.");
+  if(record.oxygen_level >= 95) messages.push("✅ Oxygen good");
+  else messages.push("⚠️ Oxygen low");
 
-  if(record.steps >= 7000) messages.push("✅ Steps are good today.");
-  else if(record.steps >= 4000) messages.push("⚠️ Steps moderate, try walking more.");
-  else messages.push("⚠️ Steps low, aim for more activity.");
+  if(record.steps >= 7000) messages.push("✅ Steps good");
+  else if(record.steps >= 4000) messages.push("⚠️ Steps moderate");
+  else messages.push("⚠️ Steps low");
 
-  if(systolic <= 130 && diastolic <= 80) messages.push("✅ Blood pressure is normal.");
-  else messages.push("⚠️ Blood pressure is slightly high, reduce stress & salt.");
+  if(systolic <= 130 && diastolic <= 80) messages.push("✅ BP normal");
+  else messages.push("⚠️ BP high");
 
   healthSummary.innerHTML = messages.join("<br>");
 }
 
-// Pie charts
+
+// ============================
+// 📊 PIE CHARTS
+// ============================
 function renderPieCharts(record) {
+
   const scores = {
     heart: Math.min(Math.max(Math.round((100 - Math.abs(record.heart_rate-80))/4),0),25),
     oxygen: Math.min(Math.max(Math.round((record.oxygen_level-90)/2),0),25),
@@ -103,36 +209,60 @@ function renderPieCharts(record) {
   const colors = ['#4facfe','#00f2fe','#ff6b6b','#feca57'];
 
   if(heartChartInstance) heartChartInstance.destroy();
-  heartChartInstance = new Chart(document.getElementById('heartChart').getContext('2d'), {
+  heartChartInstance = new Chart(document.getElementById('heartChart'), {
     type:'pie',
-    data: {labels:['Heart','Remaining'], datasets:[{data:[scores.heart,25-scores.heart], backgroundColor:[colors[0],'#ddd']}]},
-    options:{plugins:{legend:{display:false}}, responsive:false}
+    data:{datasets:[{data:[scores.heart,25-scores.heart], backgroundColor:[colors[0],'#ddd']}]},
+    options:{plugins:{legend:{display:false}}}
   });
 
   if(oxygenChartInstance) oxygenChartInstance.destroy();
-  oxygenChartInstance = new Chart(document.getElementById('oxygenChart').getContext('2d'), {
+  oxygenChartInstance = new Chart(document.getElementById('oxygenChart'), {
     type:'pie',
-    data: {labels:['Oxygen','Remaining'], datasets:[{data:[scores.oxygen,25-scores.oxygen], backgroundColor:[colors[1],'#ddd']}]},
-    options:{plugins:{legend:{display:false}}, responsive:false}
+    data:{datasets:[{data:[scores.oxygen,25-scores.oxygen], backgroundColor:[colors[1],'#ddd']}]},
+    options:{plugins:{legend:{display:false}}}
   });
 
   if(stepsChartInstance) stepsChartInstance.destroy();
-  stepsChartInstance = new Chart(document.getElementById('stepsChart').getContext('2d'), {
+  stepsChartInstance = new Chart(document.getElementById('stepsChart'), {
     type:'pie',
-    data: {labels:['Steps','Remaining'], datasets:[{data:[scores.steps,25-scores.steps], backgroundColor:[colors[2],'#ddd']}]},
-    options:{plugins:{legend:{display:false}}, responsive:false}
+    data:{datasets:[{data:[scores.steps,25-scores.steps], backgroundColor:[colors[2],'#ddd']}]},
+    options:{plugins:{legend:{display:false}}}
   });
 
   if(bpChartInstance) bpChartInstance.destroy();
-  bpChartInstance = new Chart(document.getElementById('bpChart').getContext('2d'), {
+  bpChartInstance = new Chart(document.getElementById('bpChart'), {
     type:'pie',
-    data: {labels:['BP','Remaining'], datasets:[{data:[scores.bp,25-scores.bp], backgroundColor:[colors[3],'#ddd']}]},
-    options:{plugins:{legend:{display:false}}, responsive:false}
+    data:{datasets:[{data:[scores.bp,25-scores.bp], backgroundColor:[colors[3],'#ddd']}]},
+    options:{plugins:{legend:{display:false}}}
   });
 
   const overall = scores.heart + scores.oxygen + scores.steps + scores.bp;
   document.getElementById('overallScore').innerText = `Overall Health Score: ${overall}/100`;
 }
+function logoutUser() {
+  localStorage.removeItem("userId");
+  userId = null;
 
-// Initial fetch
-fetchRecords();
+  document.getElementById("dashboard").style.display = "none";
+  document.getElementById("authSection").style.display = "block";
+  document.getElementById("logoutBtn").style.display = "none";
+
+  // Clear UI
+  document.querySelector("#recordsTable tbody").innerHTML =
+    "<tr><td colspan='5'>⚠️ Please login to see your data</td></tr>";
+
+  document.getElementById("healthSummary").innerText =
+    "Your health summary will appear here.";
+
+  document.getElementById("overallScore").innerText = "";
+}
+
+// ============================
+// 🚀 INITIAL LOAD
+// ============================
+if (userId) {
+  showDashboard();   // ✅ already logged in
+  fetchRecords();
+} else {
+  hideDashboard();   // ❗ hide dashboard initially
+}

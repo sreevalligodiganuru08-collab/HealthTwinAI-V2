@@ -1,9 +1,0 @@
-fastapi
-uvicorn
-pydantic
-pymongo
-numpy
-pandas
-python-multipart
-dnspython
-python-dotenv
