@@ -2,7 +2,7 @@
 // script.js (Updated Full Version)
 // -------------------------
 
-const API_BASE = "http://127.0.0.1:8000"; // Change to your backend IP if needed
+const API_BASE = "https://healthtwinai-v2-2.onrender.com"; // Change to your backend IP if needed
 
 let userId = localStorage.getItem("userId") || null;
 let heartChart = null, oxygenChart = null, stepsChart = null, bpChart = null;
