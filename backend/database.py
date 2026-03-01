@@ -1,23 +1,14 @@
-from pymongo import MongoClient
 import os
+from pymongo import MongoClient
 
-# Use Render environment variable
-MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017/")
+MONGO_URL = os.getenv("MONGO_URL")
 
 client = MongoClient(MONGO_URL)
-db = client["health_db"]
+db = client["healthdb"]
 collection = db["records"]
 
-
-def save_record(record: dict):
-    """
-    Save record to MongoDB
-    """
-    collection.insert_one(record)
-
+def save_record(data):
+    collection.insert_one(data)
 
 def get_records():
-    """
-    Fetch all records
-    """
     return list(collection.find({}, {"_id": 0}))
