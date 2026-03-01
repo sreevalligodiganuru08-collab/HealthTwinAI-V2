@@ -3,11 +3,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pymongo import MongoClient
+from pydantic import BaseModel
 from datetime import datetime
+from model import analyze_health
 
 app = FastAPI()
 
-# ✅ CORS CONFIG (IMPORTANT)
+# ---------------- CORS ----------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -16,72 +18,68 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ MongoDB Connection
-client = MongoClient("mongodb+srv://healthuser:health123@cluster0.jrk94p8.mongodb.net/?appName=Cluster0")
+# ---------------- MONGODB ----------------
+client = MongoClient(
+    "mongodb+srv://healthuser:health123@cluster0.jrk94p8.mongodb.net/?retryWrites=true&w=majority"
+)
 db = client["health_db"]
-
 users_collection = db["users"]
 records_collection = db["records"]
 
-# ===========================
-# 🔐 AUTH APIs
-# ===========================
+# ---------------- MODELS ----------------
+class User(BaseModel):
+    username: str
+    password: str
 
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+class HealthRecord(BaseModel):
+    userId: str
+    heart_rate: int
+    spo2: int
+    steps: int
+    systolic_bp: int
+    diastolic_bp: int
+
+# ---------------- AUTH ----------------
 @app.post("/register")
-def register(user: dict):
-    if users_collection.find_one({"username": user["username"]}):
+def register(user: User):
+    if users_collection.find_one({"username": user.username}):
         raise HTTPException(status_code=400, detail="User already exists")
-
-    users_collection.insert_one(user)
-    return {"message": "User registered successfully"}
+    result = users_collection.insert_one({"username": user.username, "password": user.password})
+    return {"message": "User registered successfully", "userId": str(result.inserted_id)}
 
 @app.post("/login")
-def login(user: dict):
-    existing_user = users_collection.find_one({
-        "username": user["username"],
-        "password": user["password"]
-    })
-
-    if not existing_user:
+def login(req: LoginRequest):
+    user = users_collection.find_one({"username": req.username, "password": req.password})
+    if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    return {"userId": str(user["_id"])}
 
-    return {"message": "Login successful", "userId": user["username"]}
-
-
-# ===========================
-# 🏥 HEALTH APIs
-# ===========================
+# ---------------- HEALTH ----------------
+@app.get("/health")
+def check_health():
+    return {"status": "HealthTwin AI Running"}
 
 @app.post("/save")
-def save_record(record: dict):
-    # ✅ Ensure userId is present
-    if "userId" not in record:
-        raise HTTPException(status_code=400, detail="User ID required")
-
-    record["timestamp"] = datetime.now().isoformat()
-
-    records_collection.insert_one(record)
+def save_record(record: HealthRecord):
+    record_dict = record.dict()
+    record_dict["timestamp"] = datetime.now().isoformat()
+    records_collection.insert_one(record_dict)
     return {"message": "Record saved successfully"}
 
+# ---------------- RECORDS ----------------
 @app.get("/records/{user_id}")
 def get_records(user_id: str):
-    records = list(
-        records_collection.find(
-            {"userId": user_id},
-            {"_id": 0}
-        )
-    )
-    return records
+    records = list(records_collection.find({"userId": user_id}, {"_id": 0}))
+    analysis = analyze_health(records)
+    return {**analysis, "records": records}  # frontend receives chart_scores + summary
 
-
-# ===========================
-# 🌐 FRONTEND SERVING
-# ===========================
-
-# ✅ Serve static files (CSS, JS)
+# ---------------- FRONTEND ----------------
 app.mount("/static", StaticFiles(directory="../frontend"), name="static")
 
-# ✅ Serve index.html
 @app.get("/")
 def serve_frontend():
     return FileResponse("../frontend/index.html")

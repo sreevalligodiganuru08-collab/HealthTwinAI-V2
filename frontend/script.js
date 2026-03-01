@@ -1,332 +1,250 @@
-// ============================
-// HEALTHTWIN AI - FRONTEND LOGIC
-// ============================
+// -------------------------
+// script.js (Updated Full Version)
+// -------------------------
 
-const healthForm = document.getElementById('healthForm');
-const recordsTable = document.querySelector('#recordsTable tbody');
-const healthSummary = document.getElementById('healthSummary');
+const API_BASE = "http://127.0.0.1:8000"; // Change to your backend IP if needed
 
-// Chart instances
-let heartChartInstance, oxygenChartInstance, stepsChartInstance, bpChartInstance;
+let userId = localStorage.getItem("userId") || null;
+let heartChart = null, oxygenChart = null, stepsChart = null, bpChart = null;
 
-// Session
-let userId = localStorage.getItem("userId");
-
-// Backend
-const API_BASE = 'https://healthtwinai-v2-2.onrender.com';
-
-// ============================
-// UI CONTROL
-// ============================
-function showDashboard() {
-  document.getElementById("authSection").style.display = "none";
-  document.getElementById("dashboard").style.display = "block";
-  document.getElementById("logoutBtn").style.display = "block";
-}
-
-function hideDashboard() {
-  document.getElementById("dashboard").style.display = "none";
-}
-
-// ============================
-// SHOW / HIDE PASSWORD
-// ============================
-function togglePassword(inputId, toggleId) {
-  const input = document.getElementById(inputId);
-  const toggleText = document.getElementById(toggleId);
-  if (input.type === "password") {
-    input.type = "text"; toggleText.innerText = "🙈 Hide";
-  } else {
-    input.type = "password"; toggleText.innerText = "👁 Show";
+// ----------------- REGISTER -----------------
+async function registerUser() {
+  const username = document.getElementById("regUsername").value.trim();
+  const password = document.getElementById("regPassword").value.trim();
+  if (!username || !password) return alert("Enter username and password");
+  
+  try {
+    const res = await fetch(`${API_BASE}/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (!res.ok) return alert(data.detail || "Registration failed");
+    alert("Registered successfully. Please login.");
+    showLogin();
+  } catch (err) {
+    console.error(err);
+    alert("Server error during registration. Check backend URL.");
   }
 }
 
-// ============================
-// LOGIN
-// ============================
+// ----------------- LOGIN -----------------
 async function loginUser() {
   const username = document.getElementById("username").value.trim();
   const password = document.getElementById("password").value.trim();
-  const loginMsg = document.getElementById("loginMsg") || createLoginMsg();
-
-  if (!username || !password) {
-    loginMsg.innerText = "⚠️ Enter username & password";
-    loginMsg.style.color = "orange";
-    return;
-  }
+  if (!username || !password) return alert("Enter username and password");
 
   try {
     const res = await fetch(`${API_BASE}/login`, {
       method: "POST",
-      headers: {"Content-Type": "application/json"},
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password })
     });
     const data = await res.json();
-    if (res.ok) {
-      loginMsg.innerText = "✅ Login Successful";
-      loginMsg.style.color = "green";
-      localStorage.setItem("userId", data.userId);
-      userId = data.userId;
-      showDashboard();
-      fetchRecords();
-    } else {
-      loginMsg.innerText = "❌ Invalid credentials";
-      loginMsg.style.color = "red";
-    }
+    if (!res.ok) return alert(data.detail || "Login failed");
+
+    userId = data.userId;
+    localStorage.setItem("userId", userId);
+
+    document.getElementById("authSection").style.display = "none";
+    document.getElementById("dashboard").style.display = "block";
+    document.getElementById("logoutBtn").style.display = "inline-block";
+
+    fetchRecords();
   } catch (err) {
-    loginMsg.innerText = "⚠️ Server error. Try again later.";
-    loginMsg.style.color = "orange";
+    console.error(err);
+    alert("Server error during login. Check backend URL.");
   }
 }
 
-function createLoginMsg() {
-  const p = document.createElement('p');
-  p.id = "loginMsg";
-  p.style.marginTop = "10px";
-  document.getElementById("loginBox").appendChild(p);
-  return p;
+// ----------------- LOGOUT -----------------
+function logoutUser() {
+  localStorage.removeItem("userId");
+  location.reload();
 }
 
-// ============================
-// REGISTER
-// ============================
-async function registerUser() {
-  const username = document.getElementById("regUsername").value.trim();
-  const password = document.getElementById("regPassword").value.trim();
-  const registerBtn = document.getElementById("registerBtn");
-  const registerMsg = document.getElementById("registerMsg");
-
-  if (!username || !password) { 
-    registerMsg.innerText = "⚠️ Enter username & password"; 
-    registerMsg.style.color = "orange"; 
-    return; 
-  }
-
-  try {
-    registerBtn.innerText = "Registering...";
-    const res = await fetch(`${API_BASE}/register`, {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ username, password })
-    });
-    const data = await res.json();
-    if (res.ok) {
-      registerMsg.innerText = "✅ Registered! Now login."; 
-      registerMsg.style.color = "green";
-      registerBtn.disabled = true; 
-      registerBtn.innerText = "Registered ✔";
-      setTimeout(() => { 
-        showLogin(); 
-        registerBtn.disabled = false; 
-        registerBtn.innerText = "Register"; 
-      }, 1500);
-    } else {
-      registerMsg.innerText = "❌ " + data.detail; 
-      registerMsg.style.color = "red"; 
-      registerBtn.innerText = "Register";
-    }
-  } catch (err) {
-    registerMsg.innerText = "⚠️ Server error"; 
-    registerMsg.style.color = "orange"; 
-    registerBtn.innerText = "Register";
-  }
-}
-
-// ============================
-// SWITCH AUTH
-// ============================
-function showLogin() { 
-  document.getElementById("registerBox").style.display = "none"; 
-  document.getElementById("loginBox").style.display = "block"; 
-}
-function showRegister() { 
-  document.getElementById("loginBox").style.display = "none"; 
-  document.getElementById("registerBox").style.display = "block"; 
-}
-
-// ============================
-// FETCH RECORDS
-// ============================
+// ----------------- FETCH RECORDS -----------------
 async function fetchRecords() {
-  if (!userId) { 
-    recordsTable.innerHTML = `<tr><td colspan="5">⚠️ Please login</td></tr>`; 
-    return; 
-  }
+  if (!userId) return;
   try {
     const res = await fetch(`${API_BASE}/records/${userId}`);
+    if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
     const data = await res.json();
-    recordsTable.innerHTML = '';
-    if (!data.length) { 
-      recordsTable.innerHTML = `<tr><td colspan="5">No records found</td></tr>`; 
-      return; 
+
+    const tbody = document.getElementById("recordsTable");
+    tbody.innerHTML = "";
+
+    if (!data.records || !data.records.length) {
+      tbody.innerHTML = `<tr><td colspan="5">No records yet</td></tr>`;
+      return;
     }
-    data.forEach(record => {
-      const tr = document.createElement('tr');
-      const date = record.timestamp ? new Date(record.timestamp).toLocaleString() : "N/A";
-      tr.innerHTML = `<td>${date}</td>
-                      <td>${record.heart_rate}</td>
-                      <td>${record.oxygen_level}</td>
-                      <td>${record.steps}</td>
-                      <td>${record.blood_pressure}</td>`;
-      recordsTable.appendChild(tr);
+
+    data.records.forEach(r => {
+      const time = r.timestamp ? new Date(r.timestamp).toLocaleString() : "-";
+      tbody.innerHTML += `<tr>
+        <td>${time}</td>
+        <td>${r.heart_rate ?? "-"}</td>
+        <td>${r.spo2 ?? "-"}</td>
+        <td>${r.steps ?? "-"}</td>
+        <td>${r.systolic_bp ?? "-"} / ${r.diastolic_bp ?? "-"}</td>
+      </tr>`;
     });
-    const latest = data[data.length - 1];
-    renderHealthSummary(latest);
-    renderPieCharts(latest);
-  } catch (err) { console.error(err); }
+
+    renderCharts(data.chart_scores); // <-- Use chart_scores from model.py
+    renderSummary(data); // Entire analysis object
+  } catch (err) {
+    console.error(err);
+    alert("Error fetching records. Check backend URL and CORS.");
+  }
 }
 
-// ============================
-// SAVE RECORD
-// ============================
-healthForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const saveMsg = document.getElementById("saveMsg") || createSaveMsg();
+// ----------------- RENDER SUMMARY -----------------
+function renderSummary(analysis) {
+  if (!analysis) return;
+  const summaryElement = document.getElementById("healthSummary");
 
-  if (!userId) { 
-    saveMsg.innerText = "⚠️ Please login first!";
-    saveMsg.style.color = "orange";
-    return; 
+  const avgHR = analysis.avg?.heart_rate ?? "-";
+  const avgSpO2 = analysis.avg?.spo2 ?? "-";
+  const avgSystolic = analysis.avg?.systolic_bp ?? "-";
+  const avgDiastolic = analysis.avg?.diastolic_bp ?? "-";
+  const avgSteps = analysis.avg?.steps ?? "-";
+
+  summaryElement.innerText = `
+💡 Latest Status: ${analysis.health_status ?? "-"}
+🧮 Overall Risk: ${analysis.risk_percentage ?? "-"}%
+✅ Confidence: ${analysis.confidence ?? "-"}%
+
+📊 Average Across All Records:
+- Heart Rate: ${avgHR}
+- SpO2: ${avgSpO2}
+- Blood Pressure: ${avgSystolic}/${avgDiastolic}
+- Steps: ${avgSteps}
+
+🔍 Parameter Analysis:
+- Heart Rate: ${analysis.parameter_analysis?.heart_rate ?? "-" }
+- SpO2: ${analysis.parameter_analysis?.spo2 ?? "-" }
+- Blood Pressure: ${analysis.parameter_analysis?.blood_pressure ?? "-" }
+- Activity: ${analysis.parameter_analysis?.activity ?? "-" }
+
+💡 Extra Insights:
+${analysis.extra_insights ?? "None"}
+`.trim();
+}
+
+// ----------------- CHARTS -----------------
+function renderCharts(chartScores) {
+  if (!chartScores) return;
+
+  function createChart(id, score, existing) {
+    if (existing) existing.destroy();
+    return new Chart(document.getElementById(id), {
+      type: "doughnut",
+      data: { datasets: [{ data: [score, 25 - score], backgroundColor: ["#4facfe", "#e0e0e0"] }] },
+      options: { cutout: "70%", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
   }
 
-  const formData = new FormData(healthForm);
-  const payload = {
-    heart_rate: Number(formData.get('heart_rate')),
-    oxygen_level: Number(formData.get('oxygen_level')),
-    steps: Number(formData.get('steps')),
-    blood_pressure: formData.get('blood_pressure'),
-    userId
-  };
+  heartChart = createChart("heartChart", chartScores.heart, heartChart);
+  oxygenChart = createChart("oxygenChart", chartScores.spo2, oxygenChart);
+  stepsChart = createChart("stepsChart", chartScores.steps, stepsChart);
+  bpChart = createChart("bpChart", chartScores.bp, bpChart);
 
-  try {
-    await fetch(`${API_BASE}/save`, {
-      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
-    });
-    saveMsg.innerText = "✅ Record saved!";
-    saveMsg.style.color = "green";
-    setTimeout(() => { saveMsg.innerText = ""; }, 2000);
+  document.getElementById("heartScore").innerText = `${chartScores.heart}/25`;
+  document.getElementById("oxygenScore").innerText = `${chartScores.spo2}/25`;
+  document.getElementById("stepsScore").innerText = `${chartScores.steps}/25`;
+  document.getElementById("bpScore").innerText = `${chartScores.bp}/25`;
+  document.getElementById("overallScore").innerText = `Overall Health Score: ${chartScores.overall}/100`;
+}
 
-    healthForm.reset();
+// ----------------- UI SWITCH -----------------
+function showLogin() {
+  document.getElementById("registerBox").style.display = "none";
+  document.getElementById("loginBox").style.display = "block";
+}
+function showRegister() {
+  document.getElementById("registerBox").style.display = "block";
+  document.getElementById("loginBox").style.display = "none";
+}
+
+// ----------------- FORM SUBMISSION -----------------
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("healthForm")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!userId) return alert("Login first");
+
+    const formData = new FormData(e.target);
+    const bp = formData.get("blood_pressure");
+    if (!bp || !bp.includes("/")) return alert("BP must be like 120/80");
+    const [systolic, diastolic] = bp.split("/").map(Number);
+
+    const payload = {
+      userId,
+      heart_rate: Number(formData.get("heart_rate") ?? 0),
+      spo2: Number(formData.get("spo2") ?? 0),
+      steps: Number(formData.get("steps") ?? 0),
+      systolic_bp: systolic,
+      diastolic_bp: diastolic,
+      timestamp: new Date().toISOString()
+    };
+
+    try {
+      const res = await fetch(`${API_BASE}/save`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) return alert(data.detail || "Save failed");
+      alert("Record saved successfully!");
+      e.target.reset();
+      fetchRecords();
+    } catch (err) {
+      console.error(err);
+      alert("Server error while saving record.");
+    }
+  });
+
+  // Auto-login if already logged in
+  if (userId) {
+    document.getElementById("authSection").style.display = "none";
+    document.getElementById("dashboard").style.display = "block";
+    document.getElementById("logoutBtn").style.display = "inline-block";
     fetchRecords();
-  } catch (err) { 
-    console.error(err);
-    saveMsg.innerText = "⚠️ Failed to save record";
-    saveMsg.style.color = "orange";
   }
 });
 
-function createSaveMsg() {
-  const p = document.createElement('p');
-  p.id = "saveMsg";
-  p.style.marginTop = "10px";
-  document.querySelector(".input-section").appendChild(p);
-  return p;
-}
+// ----------------- FUTURE RISK -----------------
+async function analyzeFutureRisk() {
+  if (!userId) return alert("Login first");
 
-// ============================
-// HEALTH SUMMARY
-// ============================
-function renderHealthSummary(record) {
-  const messages = [];
-  const [systolic, diastolic] = record.blood_pressure.split("/").map(Number);
-  messages.push(record.heart_rate <= 100 ? "✅ Heart normal" : "⚠️ Heart high");
-  messages.push(record.oxygen_level >= 95 ? "✅ Oxygen good" : "⚠️ Oxygen low");
-  messages.push(record.steps >= 7000 ? "✅ Steps good" : "⚠️ Walk more");
-  messages.push((systolic <= 130 && diastolic <= 80) ? "✅ BP normal" : "⚠️ BP high");
-  healthSummary.innerHTML = messages.join("<br>");
-}
+  const box = document.getElementById("futureRiskResult");
+  box.innerText = "Analyzing future risk... ⏳";
 
-// ============================
-// PIE CHARTS
-// ============================
-function renderPieCharts(record) {
-  const [systolic] = record.blood_pressure.split("/").map(Number);
+  try {
+    // Use the records endpoint for analysis
+    const res = await fetch(`${API_BASE}/records/${userId}`);
+    if (!res.ok) throw new Error("Failed to fetch records for future risk");
+    const data = await res.json();
 
-  const scores = {
-    heart: Math.min(Math.max(Math.round((1 - Math.abs(record.heart_rate - 75) / 75) * 25), 0), 25),
-    oxygen: Math.min(Math.max(Math.round((record.oxygen_level / 100) * 25), 0), 25),
-    steps: Math.min(Math.max(Math.round((record.steps / 10000) * 25), 0), 25),
-    bp: Math.min(Math.max(Math.round((1 - Math.abs(systolic - 120) / 120) * 25), 0), 25)
-  };
-
-  const updateOrCreateChart = (chartInstance, id, value, color, label) => {
-    const ctx = document.getElementById(id).getContext('2d');
-    if (chartInstance) {
-      chartInstance.data.datasets[0].data = [value, 25 - value];
-      chartInstance.update();
-      return chartInstance;
-    } else {
-      return new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-          labels: [label, 'Remaining'],
-          datasets: [{
-            data: [value, 25 - value],
-            backgroundColor: [color, '#eee'],
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: false,
-          maintainAspectRatio: false,
-          cutout: '70%',
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  if(context.dataIndex === 0) return `${label}: ${value}/25`; 
-                  return null;
-                }
-              }
-            },
-            datalabels: {
-              display: true,
-              color: '#000',
-              font: { weight: 'bold', size: 14 },
-              formatter: function(val, ctx) { if(ctx.dataIndex===0) return val + '/25'; return ''; }
-            }
-          }
-        },
-        plugins: [ChartDataLabels]
-      });
+    if (!data.records?.length) {
+      box.innerText = "No records available to predict future risk.";
+      return;
     }
-  };
 
-  heartChartInstance = updateOrCreateChart(heartChartInstance, 'heartChart', scores.heart, '#4facfe', 'Heart');
-  oxygenChartInstance = updateOrCreateChart(oxygenChartInstance, 'oxygenChart', scores.oxygen, '#00f2fe', 'Oxygen');
-  stepsChartInstance = updateOrCreateChart(stepsChartInstance, 'stepsChart', scores.steps, '#ff6b6b', 'Steps');
-  bpChartInstance = updateOrCreateChart(bpChartInstance, 'bpChart', scores.bp, '#feca57', 'BP');
+    const abnormal = [];
+    data.records.forEach(r => {
+      if (r.heart_rate < 50 || r.heart_rate > 100) abnormal.push("Heart Rate");
+      if (r.spo2 < 95) abnormal.push("Oxygen Level");
+      if (r.systolic_bp > 140 || r.diastolic_bp > 90) abnormal.push("Blood Pressure");
+      if (r.steps < 2000) abnormal.push("Activity");
+    });
 
-  document.getElementById('scoreHeart').innerText = `${scores.heart}/25`;
-  document.getElementById('scoreOxygen').innerText = `${scores.oxygen}/25`;
-  document.getElementById('scoreSteps').innerText = `${scores.steps}/25`;
-  document.getElementById('scoreBP').innerText = `${scores.bp}/25`;
-
-  const overall = scores.heart + scores.oxygen + scores.steps + scores.bp;
-  document.getElementById('overallScore').innerText = `Overall Health Score: ${overall}/100`;
-}
-
-// ============================
-// LOGOUT
-// ============================
-function logoutUser() {
-  localStorage.removeItem("userId");
-  userId = null;
-  document.getElementById("dashboard").style.display = "none";
-  document.getElementById("authSection").style.display = "block";
-  document.getElementById("logoutBtn").style.display = "none";
-  recordsTable.innerHTML = `<tr><td colspan="5">⚠️ Please login</td></tr>`;
-  healthSummary.innerText = "Your health summary will appear here.";
-  document.getElementById("overallScore").innerText = "";
-}
-
-// ============================
-// INITIAL LOAD
-// ============================
-if (userId) { 
-  showDashboard(); 
-  fetchRecords(); 
-} else { 
-  hideDashboard(); 
+    box.innerText = abnormal.length
+      ? `⚠️ Future risk may increase. Watch: ${[...new Set(abnormal)].join(", ")}.`
+      : "✅ Your parameters are stable.";
+  } catch (err) {
+    console.error(err);
+    box.innerText = "Unable to analyze future risk. Check backend.";
+  }
 }
