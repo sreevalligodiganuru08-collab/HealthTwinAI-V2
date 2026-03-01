@@ -1,12 +1,17 @@
 from fastapi import FastAPI
-from backend.routes.health import health_router  # must match the router name in health.py
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from backend.routes.health import health_router
 
 app = FastAPI(title="HealthTwinAI Backend")
 
-# Include all routers
+# Include API routes
 app.include_router(health_router)
 
-# Optional: root endpoint
+# Serve frontend files
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
+# Serve index.html at root
 @app.get("/")
-def root():
-    return {"message": "Welcome to HealthTwinAI Backend!"}
+def serve_frontend():
+    return FileResponse("frontend/index.html")

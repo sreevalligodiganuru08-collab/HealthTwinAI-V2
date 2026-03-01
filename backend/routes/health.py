@@ -1,18 +1,18 @@
 from fastapi import APIRouter
 from backend.database import save_record, get_records
-from backend.model import analyze_health
 
-router = APIRouter(prefix="/health", tags=["Health"])
+health_router = APIRouter()
 
-@router.post("/add")
-def add_data(data: dict):
-    return save_record(data)
+@health_router.get("/health")
+def check_health():
+    return {"status": "ok"}
 
-@router.get("/all")
-def get_all():
-    return get_records()
+@health_router.post("/save")
+def save_data(record: dict):
+    save_record(record)
+    return {"message": "Record saved"}
 
-@router.get("/analyze")
-def analyze():
+@health_router.get("/records")
+def get_all_records():
     records = get_records()
-    return analyze_health(records)
+    return {"records": records}

@@ -6,7 +6,7 @@ const healthSummary = document.getElementById('healthSummary');
 let heartChartInstance, oxygenChartInstance, stepsChartInstance, bpChartInstance;
 
 // 🌟 IMPORTANT: Change this to your deployed backend URL on Render
-const API_BASE = 'https://healthtwinai-v2-1.onrender.com';
+const API_BASE = 'https://healthtwinai-v2-2.onrender.com';
 
 // Fetch and render records
 async function fetchRecords() {
