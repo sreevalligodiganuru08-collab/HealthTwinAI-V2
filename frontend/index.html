@@ -29,11 +29,12 @@
   <!-- LOGIN -->
   <section class="input-section" id="authSection">
     <h2>Login / Register</h2>
+<input type="text" id="regUsername" placeholder="Username">
+<input type="password" id="regPassword" placeholder="Password">
 
-    <input type="text" id="username" placeholder="Username">
-    <input type="password" id="password" placeholder="Password">
+<button id="registerBtn" onclick="registerUser()">Register</button>
 
-    <button onclick="registerUser()">Register</button>
+<p id="registerMsg"></p>
     <button onclick="loginUser()">Login</button>
   </section>
 

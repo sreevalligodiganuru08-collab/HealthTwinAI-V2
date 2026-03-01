@@ -57,12 +57,11 @@ async function loginUser() {
 }
 
 
-// ============================
-// 🆕 REGISTER
-// ============================
 async function registerUser() {
-  const username = document.getElementById("username").value;
-  const password = document.getElementById("password").value;
+  const username = document.getElementById("regUsername").value;
+  const password = document.getElementById("regPassword").value;
+  const registerBtn = document.getElementById("registerBtn");
+  const registerMsg = document.getElementById("registerMsg");
 
   const res = await fetch(`${API_BASE}/register`, {
     method: "POST",
@@ -73,9 +72,16 @@ async function registerUser() {
   const data = await res.json();
 
   if (res.ok) {
-    alert("✅ Registered Successfully");
+    registerMsg.innerText = "✅ Registered successfully! Now login using your credentials.";
+    registerMsg.style.color = "green";
+
+    // 🔥 Disable button after success
+    registerBtn.disabled = true;
+    registerBtn.innerText = "Registered ✔";
+
   } else {
-    alert(data.detail);
+    registerMsg.innerText = "❌ " + data.detail;
+    registerMsg.style.color = "red";
   }
 }
 

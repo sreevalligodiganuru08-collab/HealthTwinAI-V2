@@ -84,6 +84,10 @@ button:hover {
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(0,0,0,0.2);
 }
+#registerMsg {
+  margin-top: 10px;
+  font-weight: 500;
+}
 
 /* Table */
 table {
@@ -110,12 +114,17 @@ th {
   border-left: 5px solid #4facfe;
 }
 
-/* Charts container */
 .charts-container {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 2rem;
-  margin-top: 1rem;
+  gap: 1.5rem;
+  justify-items: center;
+}
+
+/* 🔥 CONTROL CHART SIZE */
+.charts-container canvas {
+  width: 280px !important;
+  height: 280px !important;
 }
 
 /* Footer */
