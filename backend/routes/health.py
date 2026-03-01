@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from backend.database import save_record, get_records
+from database import save_record, get_records
 
 health_router = APIRouter()
 
