@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from datetime import datetime
 import os
 
-from model import analyze_health
+from backend.model import analyze_health
 
 app = FastAPI()
 
@@ -20,8 +20,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ---------------- MONGODB (🔥 FIXED FOR DEPLOYMENT) ----------------
-MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017/")
+# ---------------- MONGODB ----------------
+MONGO_URL = os.getenv("MONGO_URL")
 client = MongoClient(MONGO_URL)
 
 db = client["healthtwin"]
@@ -73,12 +73,6 @@ def login(req: LoginRequest):
     return {"userId": str(user["_id"])}
 
 
-# ---------------- HEALTH CHECK ----------------
-@app.get("/health")
-def check_health():
-    return {"status": "HealthTwin AI Running"}
-
-
 # ---------------- SAVE RECORD ----------------
 @app.post("/save")
 def save_record(record: HealthRecord):
@@ -90,10 +84,9 @@ def save_record(record: HealthRecord):
     return {"message": "Record saved successfully"}
 
 
-# ---------------- GET RECORDS + ANALYSIS ----------------
+# ---------------- GET RECORDS ----------------
 @app.get("/records/{user_id}")
 def get_records(user_id: str):
-
     records = list(records_collection.find(
         {"userId": user_id},
         {"_id": 0}
@@ -103,66 +96,16 @@ def get_records(user_id: str):
 
     return {
         "records": records,
-        "analysis": analysis   # ✅ matches your script.js
+        "analysis": analysis
     }
 
 
-# ---------------- FUTURE RISK (🔥 IMPROVED) ----------------
-@app.get("/future-risk/{user_id}")
-def future_risk(user_id: str):
-
-    records = list(records_collection.find(
-        {"userId": user_id},
-        {"_id": 0}
-    ))
-
-    if not records:
-        return {
-            "risk": "Unknown",
-            "message": "No health data available."
-        }
-
-    risks = []
-    suggestions = []
-
-    for r in records:
-
-        if r.get("heart_rate", 0) > 100:
-            risks.append("High Heart Rate")
-            suggestions.append("Reduce stress, avoid caffeine, practice meditation.")
-
-        if r.get("spo2", 100) < 95:
-            risks.append("Low Oxygen Level")
-            suggestions.append("Improve breathing, stay in ventilated areas.")
-
-        if r.get("systolic_bp", 0) > 140 or r.get("diastolic_bp", 0) > 90:
-            risks.append("High Blood Pressure")
-            suggestions.append("Reduce salt intake, exercise regularly.")
-
-        if r.get("steps", 0) < 3000:
-            risks.append("Low Physical Activity")
-            suggestions.append("Walk at least 6000–8000 steps daily.")
-
-    risks = list(set(risks))
-    suggestions = list(set(suggestions))
-
-    if risks:
-        return {
-            "risk": "High",
-            "problems": risks,
-            "solutions": suggestions,
-            "message": "⚠️ If current lifestyle continues, serious health issues may develop."
-        }
-    else:
-        return {
-            "risk": "Low",
-            "message": "✅ Your current health trend is stable. Keep maintaining your lifestyle."
-        }
-
-
 # ---------------- FRONTEND ----------------
-app.mount("/static", StaticFiles(directory="../frontend"), name="static")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FRONTEND_DIR = os.path.join(BASE_DIR, "..", "frontend")
+
+app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 
 @app.get("/")
 def serve_frontend():
-    return FileResponse("../frontend/index.html")
+    return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
