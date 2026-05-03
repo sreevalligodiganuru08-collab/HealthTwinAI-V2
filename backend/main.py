@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse
 from pymongo import MongoClient
 from pydantic import BaseModel
 from datetime import datetime
+import os
 
 from model import analyze_health
 
@@ -19,10 +20,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ---------------- MONGODB ----------------
-client = MongoClient("mongodb://localhost:27017/")
-db = client["healthtwin"]
+# ---------------- MONGODB (🔥 FIXED FOR DEPLOYMENT) ----------------
+MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017/")
+client = MongoClient(MONGO_URL)
 
+db = client["healthtwin"]
 users_collection = db["users"]
 records_collection = db["records"]
 
@@ -99,14 +101,13 @@ def get_records(user_id: str):
 
     analysis = analyze_health(records)
 
-    # ✅ IMPORTANT: RETURN STRUCTURED RESPONSE
     return {
         "records": records,
-        "analysis": analysis   # <-- THIS FIXES YOUR FRONTEND ISSUE
+        "analysis": analysis   # ✅ matches your script.js
     }
 
 
-# ---------------- FUTURE RISK ----------------
+# ---------------- FUTURE RISK (🔥 IMPROVED) ----------------
 @app.get("/future-risk/{user_id}")
 def future_risk(user_id: str):
 
@@ -117,34 +118,45 @@ def future_risk(user_id: str):
 
     if not records:
         return {
-            "message": "No data available",
-            "risk": "Unknown"
+            "risk": "Unknown",
+            "message": "No health data available."
         }
 
-    warnings = []
+    risks = []
+    suggestions = []
 
     for r in records:
-        if r.get("heart_rate", 0) > 100 or r.get("heart_rate", 0) < 50:
-            warnings.append("Heart Rate")
+
+        if r.get("heart_rate", 0) > 100:
+            risks.append("High Heart Rate")
+            suggestions.append("Reduce stress, avoid caffeine, practice meditation.")
 
         if r.get("spo2", 100) < 95:
-            warnings.append("Oxygen Level")
+            risks.append("Low Oxygen Level")
+            suggestions.append("Improve breathing, stay in ventilated areas.")
 
         if r.get("systolic_bp", 0) > 140 or r.get("diastolic_bp", 0) > 90:
-            warnings.append("Blood Pressure")
+            risks.append("High Blood Pressure")
+            suggestions.append("Reduce salt intake, exercise regularly.")
 
-        if r.get("steps", 0) < 2000:
-            warnings.append("Low Activity")
+        if r.get("steps", 0) < 3000:
+            risks.append("Low Physical Activity")
+            suggestions.append("Walk at least 6000–8000 steps daily.")
 
-    if warnings:
+    risks = list(set(risks))
+    suggestions = list(set(suggestions))
+
+    if risks:
         return {
             "risk": "High",
-            "message": f"⚠️ Future risk detected in: {', '.join(set(warnings))}"
+            "problems": risks,
+            "solutions": suggestions,
+            "message": "⚠️ If current lifestyle continues, serious health issues may develop."
         }
     else:
         return {
             "risk": "Low",
-            "message": "✅ Your health trends look stable"
+            "message": "✅ Your current health trend is stable. Keep maintaining your lifestyle."
         }
 
 
