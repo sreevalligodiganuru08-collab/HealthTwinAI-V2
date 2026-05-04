@@ -50,6 +50,7 @@ class HealthRecord(BaseModel):
     steps: int
     systolic_bp: int
     diastolic_bp: int
+    timestamp: Optional[str] = None  # ✅ ADD THIS
 
 
 # ---------------- AUTH ----------------
@@ -97,7 +98,10 @@ def login(req: LoginRequest):
 @app.post("/save")
 def save_record(record: HealthRecord):
     record_dict = record.dict()
-    record_dict["timestamp"] = datetime.now().isoformat()
+
+    # if frontend sends timestamp → use it
+    if "timestamp" not in record_dict:
+        record_dict["timestamp"] = datetime.now().isoformat()
 
     records_collection.insert_one(record_dict)
 

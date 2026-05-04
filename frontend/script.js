@@ -284,6 +284,8 @@ document.addEventListener("DOMContentLoaded", () => {
       steps: Number(formData.get("steps")),
       systolic_bp: sys,
       diastolic_bp: dia
+        // 🔥 ADD THIS
+      timestamp: new Date().toISOString()
     };
 
     const res = await fetch(`${API_BASE}/save`, {
