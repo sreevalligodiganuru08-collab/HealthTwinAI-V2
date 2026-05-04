@@ -2,7 +2,7 @@
 // HealthTwin AI - FINAL PERFECT VERSION
 // -------------------------
 
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = "https://healthtwinai-v2-3.onrender.com";
 
 let userId = localStorage.getItem("userId") || null;
 
