@@ -83,7 +83,11 @@ async function fetchRecords() {
       data.records.forEach(r => {
         tbody.innerHTML += `
           <tr>
-            <td>${new Date(r.timestamp).toLocaleString()}</td>
+            <td>${new Date(r.timestamp).toLocaleString("en-IN", {
+  timeZone: "Asia/Kolkata",
+  dateStyle: "medium",
+  timeStyle: "short"
+})}</td>
             <td>${r.heart_rate}</td>
             <td>${r.spo2}</td>
             <td>${r.steps}</td>
