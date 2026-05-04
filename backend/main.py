@@ -22,9 +22,9 @@ app.add_middleware(
 
 # ---------------- MONGODB ----------------
 MONGO_URL = os.getenv("MONGO_URL")
+if not MONGO_URL:
+    raise Exception("❌ MONGO_URL not set")
 client = MongoClient(MONGO_URL)
-
-db = client["healthtwin"]
 users_collection = db["users"]
 records_collection = db["records"]
 
@@ -49,28 +49,42 @@ class HealthRecord(BaseModel):
 # ---------------- AUTH ----------------
 @app.post("/register")
 def register(user: User):
-    if users_collection.find_one({"username": user.username}):
-        raise HTTPException(status_code=400, detail="User already exists")
+    try:
+        # check if user exists
+        existing_user = users_collection.find_one({"username": user.username})
+        if existing_user:
+            raise HTTPException(status_code=400, detail="User already exists")
 
-    result = users_collection.insert_one(user.dict())
+        result = users_collection.insert_one(user.dict())
 
-    return {
-        "message": "User registered successfully",
-        "userId": str(result.inserted_id)
-    }
+        return {
+            "message": "User registered successfully",
+            "userId": str(result.inserted_id)
+        }
 
+    except Exception as e:
+        print("REGISTER ERROR:", e)  # 🔥 important for render logs
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @app.post("/login")
 def login(req: LoginRequest):
-    user = users_collection.find_one({
-        "username": req.username,
-        "password": req.password
-    })
+    try:
+        user = users_collection.find_one({
+            "username": req.username,
+            "password": req.password
+        })
 
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    return {"userId": str(user["_id"])}
+        return {
+            "userId": str(user["_id"]),
+            "message": "Login successful"
+        }
+
+    except Exception as e:
+        print("LOGIN ERROR:", e)  # 🔥 important for render logs
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 # ---------------- SAVE RECORD ----------------

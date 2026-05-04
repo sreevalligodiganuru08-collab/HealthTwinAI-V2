@@ -71,7 +71,7 @@ async function fetchRecords() {
     const res = await fetch(`${API_BASE}/records/${userId}`);
     const data = await res.json();
 
-    const analysis = data; // ✅ IMPORTANT FIX
+    const analysis = data.analysis; // ✅ IMPORTANT FIX
 
     // -------- TABLE --------
     const tbody = document.getElementById("recordsTable");
