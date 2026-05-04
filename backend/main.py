@@ -50,7 +50,6 @@ class HealthRecord(BaseModel):
     steps: int
     systolic_bp: int
     diastolic_bp: int
-    timestamp: Optional[str] = None  # ✅ ADD THIS
 
 
 # ---------------- AUTH ----------------
@@ -95,19 +94,24 @@ def login(req: LoginRequest):
 
 
 # ---------------- SAVE RECORD ----------------
+from datetime import datetime
+
 @app.post("/save")
 def save_record(record: HealthRecord):
-    record_dict = record.dict()
+    try:
+        record_dict = record.dict()
 
-    # if frontend sends timestamp → use it
-    if "timestamp" not in record_dict:
-        record_dict["timestamp"] = datetime.now().isoformat()
+        # ✅ If frontend didn't send timestamp, add it
+        if not record_dict.get("timestamp"):
+            record_dict["timestamp"] = datetime.now().isoformat()
 
-    records_collection.insert_one(record_dict)
+        records_collection.insert_one(record_dict)
 
-    return {"message": "Record saved successfully"}
+        return {"message": "Record saved successfully"}
 
-
+    except Exception as e:
+        print("SAVE ERROR:", e)  # 🔥 check logs in Render
+        raise HTTPException(status_code=500, detail="Failed to save record")
 # ---------------- GET RECORDS ----------------
 @app.get("/records/{user_id}")
 def get_records(user_id: str):
