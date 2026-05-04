@@ -22,11 +22,17 @@ app.add_middleware(
 
 # ---------------- MONGODB ----------------
 MONGO_URL = os.getenv("MONGO_URL")
+
 if not MONGO_URL:
     raise Exception("❌ MONGO_URL not set")
+
 client = MongoClient(MONGO_URL)
+
+db = client["healthtwin"]   # ✅ THIS LINE WAS MISSING
+
 users_collection = db["users"]
 records_collection = db["records"]
+
 
 # ---------------- MODELS ----------------
 class User(BaseModel):
