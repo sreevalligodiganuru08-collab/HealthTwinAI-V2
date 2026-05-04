@@ -119,7 +119,7 @@ function renderSummary(a) {
     ">
 
       <h2 style="color:${a.color}; margin-bottom:10px;">
-        🧠 ${a.health_status} Health Status
+        🧠 ${a.health_status} Health Risk
       </h2>
       <div style="display:flex; gap:30px; flex-wrap:wrap; margin-bottom:15px;">
         <p><b>💚 Health Score:</b> ${a.risk_percentage}%</p>

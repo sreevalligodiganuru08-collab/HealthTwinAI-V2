@@ -132,7 +132,12 @@ def ai_predict(avg):
 
         pred = ai_model.predict(data)[0]
         prob = ai_model.predict_proba(data)[0]
-        confidence = round(float(max(prob)) * 100, 2)
+
+        # ✅ FIX: Better confidence handling
+        confidence = round(float(max(prob)) * 100)
+
+        # avoid extreme 0 or 100
+        confidence = max(60, min(confidence, 95))
 
         return int(pred), confidence
 
@@ -188,29 +193,50 @@ def analyze_health(records):
         "diastolic_bp": avg_val("diastolic_bp")
     }
 
-    # ---- AI OR RULE ----
-    ai_pred, confidence = ai_predict(avg)
+    # ---- AI PREDICTION ----
+    ai_pred, ai_conf = ai_predict(avg)
 
-    if ai_pred is not None:
-        risk_percentage = confidence
+    # ---- RULE BASE SCORE ----
+    base_score = calculate_score(avg)
+
+    # ---- FINAL SCORE + CONFIDENCE (🔥 FIXED LOGIC) ----
+    if ai_pred is not None and ai_conf is not None:
+
+        # AI says HIGH RISK
+        if ai_pred == 1:
+            risk_percentage = max(0, base_score - (ai_conf * 0.3))
+
+        # AI says LOW RISK
+        else:
+            risk_percentage = min(100, base_score + (ai_conf * 0.2))
+
+        confidence = ai_conf
+
     else:
-        risk_percentage = calculate_score(avg)
-        confidence = 0
+        # fallback if AI fails
+        risk_percentage = base_score
 
-    # ---- STATUS + COLOR (🔥 IMPORTANT)
+        if len(records) < 3:
+            confidence = 60
+        elif len(records) < 7:
+            confidence = 75
+        else:
+            confidence = 85
+
+    # ---- STATUS + COLOR ----
     health_status, color = get_health_status(risk_percentage)
 
-    # ---- MESSAGE
+    # ---- MESSAGE ----
     message = generate_health_message(avg, health_status)
 
-    # ---- CHART
+    # ---- CHART ----
     chart_scores = calculate_chart_scores(avg)
 
     return {
         "health_status": health_status,
         "risk_percentage": round(risk_percentage, 2),
         "confidence": confidence,
-        "color": color,   # ✅ frontend color support
+        "color": color,
         "extra_insights": message,
         "avg": avg,
         "chart_scores": chart_scores
