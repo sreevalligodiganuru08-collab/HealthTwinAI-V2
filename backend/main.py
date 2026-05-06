@@ -27,12 +27,10 @@ if not MONGO_URL:
     raise Exception("❌ MONGO_URL not set")
 
 client = MongoClient(MONGO_URL)
-
-db = client["healthtwin"]   # ✅ THIS LINE WAS MISSING
+db = client["healthtwin"]
 
 users_collection = db["users"]
 records_collection = db["records"]
-
 
 # ---------------- MODELS ----------------
 class User(BaseModel):
@@ -50,13 +48,13 @@ class HealthRecord(BaseModel):
     steps: int
     systolic_bp: int
     diastolic_bp: int
+    timestamp: str | None = None   # ✅ IMPORTANT FIX
 
 
 # ---------------- AUTH ----------------
 @app.post("/register")
 def register(user: User):
     try:
-        # check if user exists
         existing_user = users_collection.find_one({"username": user.username})
         if existing_user:
             raise HTTPException(status_code=400, detail="User already exists")
@@ -69,8 +67,9 @@ def register(user: User):
         }
 
     except Exception as e:
-        print("REGISTER ERROR:", e)  # 🔥 important for render logs
+        print("REGISTER ERROR:", e)
         raise HTTPException(status_code=500, detail="Internal Server Error")
+
 
 @app.post("/login")
 def login(req: LoginRequest):
@@ -89,19 +88,17 @@ def login(req: LoginRequest):
         }
 
     except Exception as e:
-        print("LOGIN ERROR:", e)  # 🔥 important for render logs
+        print("LOGIN ERROR:", e)
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 # ---------------- SAVE RECORD ----------------
-from datetime import datetime
-
 @app.post("/save")
 def save_record(record: HealthRecord):
     try:
         record_dict = record.dict()
 
-        # ✅ If frontend didn't send timestamp, add it
+        # ✅ Use frontend time (REAL DEVICE TIME)
         if not record_dict.get("timestamp"):
             record_dict["timestamp"] = datetime.now().isoformat()
 
@@ -110,8 +107,10 @@ def save_record(record: HealthRecord):
         return {"message": "Record saved successfully"}
 
     except Exception as e:
-        print("SAVE ERROR:", e)  # 🔥 check logs in Render
+        print("SAVE ERROR:", e)
         raise HTTPException(status_code=500, detail="Failed to save record")
+
+
 # ---------------- GET RECORDS ----------------
 @app.get("/records/{user_id}")
 def get_records(user_id: str):
