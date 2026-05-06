@@ -27,6 +27,7 @@ if not MONGO_URL:
     raise Exception("❌ MONGO_URL not set")
 
 client = MongoClient(MONGO_URL)
+
 db = client["healthtwin"]
 
 users_collection = db["users"]
@@ -55,8 +56,7 @@ class HealthRecord(BaseModel):
 @app.post("/register")
 def register(user: User):
     try:
-        existing_user = users_collection.find_one({"username": user.username})
-        if existing_user:
+        if users_collection.find_one({"username": user.username}):
             raise HTTPException(status_code=400, detail="User already exists")
 
         result = users_collection.insert_one(user.dict())
@@ -98,7 +98,6 @@ def save_record(record: HealthRecord):
     try:
         record_dict = record.dict()
 
-        # ✅ Use frontend time (REAL DEVICE TIME)
         if not record_dict.get("timestamp"):
             record_dict["timestamp"] = datetime.now().isoformat()
 
