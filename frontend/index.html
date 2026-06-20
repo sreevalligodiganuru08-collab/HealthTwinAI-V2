@@ -1,25 +1,102 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>HealthTwinAI</title>
-    <link rel="stylesheet" href="style.css">
-    <meta name="google-site-verification" content="cPc03D7BVqHbJpz3sfKmT34ZEhjIQJAV_SQZd-8NKN4" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HealthTwin AI Dashboard - CodeBlue</title>
+  <meta name="google-site-verification" content="cPc03D7BVqHbJpz3sfKmT34ZEhjIQJAV_SQZd-8NKN4" />
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
-<h1>Health Monitoring System</h1>
+<header>
+  <div>
+    <h1>💙 HealthTwin AI - <span class="team-name">CodeBlue</span></h1>
+    <h3>Track. Analyze. Improve Your Health!</h3>
+  </div>
+  <button id="logoutBtn" onclick="logoutUser()" style="display:none;">🚪 Logout</button>
+</header>
 
-<div class="container">
-    <input type="number" id="heart_rate" placeholder="Heart Rate">
-    <input type="number" id="steps" placeholder="Steps">
-    <input type="number" id="sleep" placeholder="Sleep Hours">
+<div id="authSection">
+  <div id="registerBox">
+    <h2>Create Account</h2>
+    <input type="text" id="regUsername" placeholder="Enter Username">
+    <input type="password" id="regPassword" placeholder="Enter Password">
+    <button onclick="registerUser()">Register</button>
+    <p id="registerMsg"></p>
+    <p class="switch-text">Already have an account? <span onclick="showLogin()">Login</span></p>
+  </div>
 
-    <button onclick="predict()">Predict</button>
-
-    <h2 id="result"></h2>
+  <div id="loginBox" style="display:none;">
+    <h2>Welcome Back</h2>
+    <input type="text" id="username" placeholder="Enter Username">
+    <input type="password" id="password" placeholder="Enter Password">
+    <button onclick="loginUser()">Login</button>
+    <p id="loginMsg"></p>
+    <p class="switch-text">Don’t have an account? <span onclick="showRegister()">Register</span></p>
+  </div>
 </div>
 
-<script src="script.js"></script>
+<main id="dashboard" style="display:none;">
 
+  <section>
+    <h2>Enter Your Health Data</h2>
+    <form id="healthForm">
+      <div class="input-row">
+        <input type="number" name="heart_rate" placeholder="Heart Rate (bpm)" required>
+        <input type="number" name="spo2" placeholder="Oxygen Level (%)" required>
+      </div>
+      <div class="input-row">
+        <input type="number" name="steps" placeholder="Steps Walked" required>
+        <input type="text" name="blood_pressure" placeholder="Blood Pressure (e.g., 120/80)" required>
+      </div>
+      <button type="submit">💾 Save Record</button>
+    </form>
+  </section>
+
+  <section>
+    <h2>Your Records</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Heart</th>
+          <th>SpO2</th>
+          <th>Steps</th>
+          <th>BP</th>
+        </tr>
+      </thead>
+      <tbody id="recordsTable">
+        <tr><td colspan="5">Please login</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>🧠 AI Health Summary</h2>
+    <p id="healthSummary">AI summary will appear here.</p>
+    <button id="futureRiskBtn" onclick="analyzeFutureRisk()">🧠 Future Risk Prediction</button>
+    <p id="futureRiskResult"></p>
+  </section>
+
+  <section>
+    <h2>AI Health Score</h2>
+    <div class="charts-container">
+      <div class="chart-box"><h4>Heart Rate</h4><canvas id="heartChart"></canvas><p id="heartScore"></p></div>
+      <div class="chart-box"><h4>Oxygen Level</h4><canvas id="oxygenChart"></canvas><p id="oxygenScore"></p></div>
+      <div class="chart-box"><h4>Steps</h4><canvas id="stepsChart"></canvas><p id="stepsScore"></p></div>
+      <div class="chart-box"><h4>Blood Pressure</h4><canvas id="bpChart"></canvas><p id="bpScore"></p></div>
+    </div>
+    <p id="overallScore"></p>
+  </section>
+
+</main>
+
+<footer>
+  <p>Made with ❤️ by CodeBlue</p>
+</footer>
+
+<script src="/static/script.js"></script>
 </body>
 </html>
