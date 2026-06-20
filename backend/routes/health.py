@@ -1,10 +1,10 @@
 from fastapi import APIRouter
 
 from pydantic import BaseModel
-from model import predict_risk
+from backend.model import predict_risk
 
-from database import save_record, get_records
-from model import analyze_health
+from backend.database import save_record, get_records
+from backend.model import analyze_health
 
 
 health_router = APIRouter()
