@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.model import predict_health
+from model import predict_health
 
 app = FastAPI()
 
