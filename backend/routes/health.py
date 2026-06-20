@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from pydantic import BaseModel
-from backend.model import predict_risk
+#from backend.model import predict_risk
 
 from backend.database import save_record, get_records
 from backend.model import analyze_health

@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from .model import predict_health
+#from .model import predict_health
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pymongo import MongoClient
